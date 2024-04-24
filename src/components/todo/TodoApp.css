@@ -1,0 +1,12 @@
+button , label , input {
+    padding : 10px;
+    margin: 10px;
+}
+.footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #f2f2f2;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
