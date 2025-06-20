@@ -48,7 +48,7 @@ export default function AuthProvider({ children }) {
 
         try {
             const response = await executeJwtAuthenticationService(username, password)
-            if (response.status == 200) {
+            if (response.status === 200) {
                 const jwtToken = 'Bearer ' + response.data.token
                 setAuthenticated(true)
                 setUsername(username)
@@ -84,4 +84,4 @@ export default function AuthProvider({ children }) {
             {children}
         </AuthContext.Provider>
     )
-} 
+}

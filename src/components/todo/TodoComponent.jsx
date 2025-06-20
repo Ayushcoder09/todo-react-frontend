@@ -13,10 +13,8 @@ import {
     Typography,
     Box,
     Stack,
-    Alert,
-    IconButton
+    Alert
 } from '@mui/material'
-import { DatePicker } from '@mui/lab'
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { toast } from 'react-toastify'
@@ -40,10 +38,12 @@ export default function TodoComponent() {
     const navigate = useNavigate()
     const username = authContext.username
 
-    useEffect(() => retrieveTodos(), [id])
+    useEffect(() => {
+        retrieveTodos();
+    }, [retrieveTodos]);
 
     function retrieveTodos() {
-        if (id != -1) {
+        if (id !== -1) {
             retrieveTodoApi(username, id)
                 .then(response => {
                     setDescription(response.data.description)
@@ -65,13 +65,13 @@ export default function TodoComponent() {
             done: false
         }
 
-        const promise = id == -1 
+        const promise = id === -1 
             ? createTodoApi(username, todo)
             : updateTodoApi(username, id, todo)
 
         promise
             .then(() => {
-                toast.success(id == -1 ? 'Todo created successfully' : 'Todo updated successfully')
+                toast.success(id === -1 ? 'Todo created successfully' : 'Todo updated successfully')
                 navigate('/todos')
             })
             .catch(error => {
@@ -95,7 +95,7 @@ export default function TodoComponent() {
                     Back to Todos
                 </Button>
                 <Typography variant="h4" component="h1" gutterBottom>
-                    {id == -1 ? 'Create Todo' : 'Edit Todo'}
+                    {id === -1 ? 'Create Todo' : 'Edit Todo'}
                 </Typography>
             </Box>
 
@@ -160,7 +160,7 @@ export default function TodoComponent() {
                                         variant="contained"
                                         color="primary"
                                     >
-                                        {id == -1 ? 'Create' : 'Save'}
+                                        {id === -1 ? 'Create' : 'Save'}
                                     </Button>
                                 </Box>
                             </Stack>

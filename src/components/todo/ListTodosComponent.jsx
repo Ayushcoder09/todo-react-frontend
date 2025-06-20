@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { deleteTodoApi, retrieveAllTodosForUsernameApi } from "./api/TodoApiService"
 import { useAuth } from "./security/AuthContext"
 import { useNavigate } from "react-router-dom"
@@ -12,7 +12,6 @@ import {
     TableHead, 
     TableRow,
     IconButton,
-    Button,
     Typography,
     Box,
     Fab,
@@ -44,9 +43,7 @@ function ListTodosComponent() {
     const username = authContext.username
     const navigate = useNavigate()
 
-    useEffect(() => refreshTodos(), [])
-
-    function refreshTodos() {
+    const refreshTodos = useCallback(() => {
         retrieveAllTodosForUsernameApi(username)
             .then((response) => {
                 setTodos(response.data);
@@ -55,7 +52,11 @@ function ListTodosComponent() {
                 toast.error('Failed to load todos')
                 console.log(error)
             });
-    }
+    }, [username])
+
+    useEffect(() => {
+        refreshTodos();
+    }, [refreshTodos])
 
     function deleteTodo(id) {
         deleteTodoApi(username, id)
