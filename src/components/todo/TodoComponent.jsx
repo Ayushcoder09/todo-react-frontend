@@ -3,24 +3,44 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { retrieveTodoApi, updateTodoApi, createTodoApi } from './api/TodoApiService'
 import { useAuth } from './security/AuthContext'
 import React from "react"
-import { ErrorMessage, Field, Form, Formik } from 'formik'
+import { Formik, Form } from 'formik'
+import * as Yup from 'yup'
 import moment from 'moment'
+import {
+    TextField,
+    Button,
+    Paper,
+    Typography,
+    Box,
+    Stack,
+    Alert,
+    IconButton
+} from '@mui/material'
+import { DatePicker } from '@mui/lab'
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material'
+import { motion } from 'framer-motion'
+import { toast } from 'react-toastify'
+
+const validationSchema = Yup.object({
+    description: Yup.string()
+        .required('Description is required')
+        .min(3, 'Description must be at least 3 characters'),
+    targetDate: Yup.date()
+        .required('Target date is required')
+        .min(new Date(), 'Target date must be in the future')
+});
 
 export default function TodoComponent() {
-
     const { id } = useParams()
-
     const [description, setDescription] = useState('')
     const [targetDate, setTargetDate] = useState('')
+    const [error, setError] = useState('')
 
     const authContext = useAuth()
     const navigate = useNavigate()
-
     const username = authContext.username
 
-    useEffect(
-        () => retrieveTodos(), [id]
-    )
+    useEffect(() => retrieveTodos(), [id])
 
     function retrieveTodos() {
         if (id != -1) {
@@ -29,7 +49,10 @@ export default function TodoComponent() {
                     setDescription(response.data.description)
                     setTargetDate(response.data.targetDate)
                 })
-                .catch(error => console.log(error))
+                .catch(error => {
+                    setError('Failed to load todo')
+                    console.log(error)
+                })
         }
     }
 
@@ -42,81 +65,109 @@ export default function TodoComponent() {
             done: false
         }
 
-        console.log(todo)
+        const promise = id == -1 
+            ? createTodoApi(username, todo)
+            : updateTodoApi(username, id, todo)
 
-        if (id == -1) {
-            createTodoApi(username, todo)
-                .then(response => {
-                    navigate('/todos')
-                })
-                .catch(error => console.log(error))
-        }
-        else {
-            updateTodoApi(username, id, todo)
-                .then(response => {
-                    navigate('/todos')
-                })
-                .catch(error => console.log(error))
-        }
+        promise
+            .then(() => {
+                toast.success(id == -1 ? 'Todo created successfully' : 'Todo updated successfully')
+                navigate('/todos')
+            })
+            .catch(error => {
+                toast.error('Failed to save todo')
+                console.log(error)
+            })
     }
-    function validate(values) {
-        let errors = {
-        }
 
-        if (values.description.length < 5) {
-            errors.description = 'Enter atleast 5 characters'
-        }
-
-        if (!values.targetDate || !moment(values.targetDate).isValid()) {
-            errors.targetDate = 'Enter a target date'
-        }
-
-        console.log(values)
-        return errors
-    }
     return (
-        <div className="container">
-            <h1>Enter Todo Details </h1>
-            <div>
-                <Formik initialValues={{ description, targetDate }}
-                    enableReinitialize={true}
-                    onSubmit={onSubmit}
-                    validate={validate}
-                    validateOnBlur={false}
-                    validateOnChange={false}
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+        >
+            <Box sx={{ mb: 4 }}>
+                <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={() => navigate('/todos')}
+                    sx={{ mb: 2 }}
                 >
-                    {(props) => (
+                    Back to Todos
+                </Button>
+                <Typography variant="h4" component="h1" gutterBottom>
+                    {id == -1 ? 'Create Todo' : 'Edit Todo'}
+                </Typography>
+            </Box>
+
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                </Alert>
+            )}
+
+            <Paper elevation={2} sx={{ p: 4 }}>
+                <Formik
+                    initialValues={{
+                        description: description,
+                        targetDate: targetDate ? moment(targetDate).format('YYYY-MM-DD') : ''
+                    }}
+                    enableReinitialize={true}
+                    validationSchema={validationSchema}
+                    onSubmit={onSubmit}
+                >
+                    {({ values, setFieldValue, errors, touched, handleChange, handleBlur }) => (
                         <Form>
-                            <ErrorMessage
-                                name="description"
-                                component="div"
-                                className="alert alert-warning"
-                            />
+                            <Stack spacing={3}>
+                                <TextField
+                                    fullWidth
+                                    id="description"
+                                    name="description"
+                                    label="Description"
+                                    value={values.description}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    error={touched.description && Boolean(errors.description)}
+                                    helperText={touched.description && errors.description}
+                                    multiline
+                                    rows={3}
+                                />
 
-                            <ErrorMessage
-                                name="targetDate"
-                                component="div"
-                                className="alert alert-warning"
-                            />
+                                <TextField
+                                    fullWidth
+                                    id="targetDate"
+                                    name="targetDate"
+                                    label="Target Date"
+                                    type="date"
+                                    value={values.targetDate}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    error={touched.targetDate && Boolean(errors.targetDate)}
+                                    helperText={touched.targetDate && errors.targetDate}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                />
 
-
-                            <fieldset className="form-group">
-                                <label>Description</label>
-                                <Field type="text" className="form-control" name="description" />
-                            </fieldset>
-                            <fieldset className="form-group">
-                                <label>Target Date</label>
-                                <Field type="date" className="form-control" name="targetDate" />
-                            </fieldset>
-                            <div>
-                                <button className="btn btn-success m-5" type="submit">Save</button>
-                            </div>
+                                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => navigate('/todos')}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        color="primary"
+                                    >
+                                        {id == -1 ? 'Create' : 'Save'}
+                                    </Button>
+                                </Box>
+                            </Stack>
                         </Form>
-                    )
-                    }
+                    )}
                 </Formik>
-            </div>
-
-        </div>
+            </Paper>
+        </motion.div>
     )
 }
